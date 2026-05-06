@@ -34,7 +34,7 @@ export async function handleWebhook(
   }
 
   // Parse JSON body
-  let payload: unknown = null;
+  let payload: unknown;
   try {
     payload = rawBody ? JSON.parse(rawBody) : null;
   } catch {
@@ -51,14 +51,7 @@ export async function handleWebhook(
   }
 
   // Resolve event type: x-event-type header → body.event_type → body.type → null
-  const eventType =
-    request.headers.get('x-event-type') ??
-    (isObject(payload) && typeof payload.event_type === 'string'
-      ? payload.event_type
-      : null) ??
-    (isObject(payload) && typeof payload.type === 'string'
-      ? payload.type
-      : null);
+  const eventType = getEventType(request, payload);
 
   await insertEvent(
     env.DB,
@@ -69,6 +62,19 @@ export async function handleWebhook(
   );
 
   return Response.json({ success: true, message: 'Webhook received' });
+}
+
+function getEventType(request: Request, payload: unknown): string | null {
+  const obj = isObject(payload) ? payload : null;
+  const str = (key: string) => typeof obj?.[key] === 'string' ? obj[key] as string : null;
+
+  return (
+    request.headers.get('x-event-type') ??
+    request.headers.get('x-event') ??
+    str('event_type') ??
+    str('event') ??
+    str('type')
+  );
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {

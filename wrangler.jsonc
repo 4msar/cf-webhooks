@@ -15,13 +15,23 @@
     "not_found_handling": "single-page-application"
   },
 
+  "routes": [
+    {
+      "pattern": "webhook.msar.dev",
+      "zone_name": "msar.dev",
+      "custom_domain": true,
+      "enabled": true,
+      "previews_enabled": false
+    }
+   ],
+
   // D1 SQLite database binding
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "webhook_db",
+      "database_name": "webhook",
       // Replace with real ID after: npx wrangler d1 create webhook_db
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "646d0072-2a59-47c3-be95-1eb6c399d746",
       "migrations_dir": "migrations"
     }
   ],

@@ -163,7 +163,7 @@ Stores the event and returns `{ "success": true }`.
 
 **Basic event with header-based event type:**
 ```bash
-curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+curl -X POST https://webhook.msar.dev/api/bill-app/webhook \
   -H "Content-Type: application/json" \
   -H "X-Event-Type: payment.succeeded" \
   -d '{
@@ -177,7 +177,7 @@ curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
 
 **Event type from body field:**
 ```bash
-curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+curl -X POST https://webhook.msar.dev/api/bill-app/webhook \
   -H "Content-Type: application/json" \
   -d '{
     "event_type": "invoice.created",
@@ -190,7 +190,7 @@ curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
 
 **Bill paid event:**
 ```bash
-curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+curl -X POST https://webhook.msar.dev/api/bill-app/webhook \
   -H "Content-Type: application/json" \
   -H "X-Event-Type: bill.paid" \
   -d '{
@@ -205,7 +205,7 @@ curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
 **Send multiple events quickly (bash loop):**
 ```bash
 for event in "bill.created" "bill.due" "bill.paid" "bill.overdue"; do
-  curl -s -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+  curl -s -X POST https://webhook.msar.dev/api/bill-app/webhook \
     -H "Content-Type: application/json" \
     -H "X-Event-Type: $event" \
     -d "{\"event\": \"$event\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \

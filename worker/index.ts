@@ -1,14 +1,15 @@
 import { handleGetApp, handleCreateApp } from './handlers/apps';
-import { handleGetEvents } from './handlers/events';
+import { handleGetEvents, handleTruncateEvents } from './handlers/events';
 import { handleWebhook } from './handlers/webhook';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-Event-Type',
 } as const;
 
 export default {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     // CORS preflight
     if (request.method === 'OPTIONS') {
@@ -37,9 +38,13 @@ export default {
       }
 
       // GET /api/:slug/events — list events
+      // DELETE /api/:slug/events — truncate all events
       const eventsMatch = path.match(/^\/api\/([^/]+)\/events$/);
       if (eventsMatch && request.method === 'GET') {
         return addCors(await handleGetEvents(request, env, eventsMatch[1]));
+      }
+      if (eventsMatch && request.method === 'DELETE') {
+        return addCors(await handleTruncateEvents(request, env, eventsMatch[1]));
       }
 
       // All other routes → React SPA (served via ASSETS binding)

@@ -4,6 +4,7 @@ import EventsTable, { type WebhookEvent } from '../components/EventsTable';
 import { addRecentApp } from '../lib/recentApps';
 
 const REFRESH_OPTIONS = [
+  { label: '10s', value: 10 },
   { label: '20s', value: 20 },
   { label: '30s', value: 30 },
   { label: '60s', value: 60 },
@@ -25,8 +26,32 @@ export default function Dashboard() {
   const [refreshInterval, setRefreshInterval] = useState<20 | 30 | 60>(30);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [truncateConfirm, setTruncateConfirm] = useState(false);
+  const [truncating, setTruncating] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const truncateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTruncate = useCallback(async () => {
+    if (!appSlug) return;
+    setTruncating(true);
+    try {
+      await fetch(`/api/${appSlug}/events`, { method: 'DELETE' });
+      setEvents([]);
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error('Truncate error:', err);
+    } finally {
+      setTruncating(false);
+      setTruncateConfirm(false);
+    }
+  }, [appSlug]);
+
+  const requestTruncateConfirm = useCallback(() => {
+    setTruncateConfirm(true);
+    if (truncateTimerRef.current) clearTimeout(truncateTimerRef.current);
+    truncateTimerRef.current = setTimeout(() => setTruncateConfirm(false), 4000);
+  }, []);
 
   // Fetch events (merges by ID to preserve expanded rows)
   const fetchEvents = useCallback(
@@ -160,6 +185,43 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
+
+            {/* Truncate events */}
+            {truncateConfirm ? (
+              <button
+                onClick={() => void handleTruncate()}
+                disabled={truncating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300
+                           bg-red-50 text-xs font-medium text-red-600 hover:bg-red-100
+                           disabled:opacity-50 transition-colors"
+                aria-label="Confirm delete all events"
+              >
+                {truncating ? (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                )}
+                Confirm delete?
+              </button>
+            ) : (
+              <button
+                onClick={requestTruncateConfirm}
+                disabled={events.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200
+                           text-xs font-medium text-neutral-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600
+                           disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Delete all events"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                Truncate
+              </button>
+            )}
 
             {/* Manual refresh */}
             <button

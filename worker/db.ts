@@ -85,3 +85,13 @@ export async function getEventsByAppId(
     .all<WebhookEvent>();
   return result.results;
 }
+
+export async function deleteEventsByAppId(
+  db: D1Database,
+  appId: number,
+): Promise<void> {
+  await db
+    .prepare('DELETE FROM webhook_events WHERE app_id = ?')
+    .bind(appId)
+    .run();
+}

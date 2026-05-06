@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getRecentApps, addRecentApp, removeRecentApp, type RecentApp } from '../lib/recentApps';
 
 function toSlug(input: string): string {
   return input
@@ -11,13 +12,26 @@ function toSlug(input: string): string {
     .replace(/^-|-$/g, '');
 }
 
+function timeAgo(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 export default function Home() {
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setRecentApps(getRecentApps());
+  }, []);
 
   const slug = toSlug(value);
 
@@ -33,6 +47,9 @@ export default function Home() {
     try {
       const res = await fetch(`/api/apps/${slug}`);
       if (res.ok) {
+        const data = (await res.json()) as { name: string; slug: string };
+        addRecentApp(data.slug, data.name);
+        setRecentApps(getRecentApps());
         navigate(`/${slug}`);
       } else if (res.status === 404) {
         setError(`No app found for "${slug}".`);
@@ -58,6 +75,9 @@ export default function Home() {
         body: JSON.stringify({ name: value.trim() }),
       });
       if (res.ok || res.status === 201) {
+        const data = (await res.json()) as { name: string; slug: string };
+        addRecentApp(data.slug, data.name);
+        setRecentApps(getRecentApps());
         navigate(`/${slug}`);
       } else {
         const data = (await res.json()) as { error?: string };
@@ -155,6 +175,54 @@ export default function Home() {
         <p className="mt-4 text-center text-xs text-neutral-400">
           Send webhooks to <span className="font-mono">/api/&#123;app-name&#125;/webhook</span>
         </p>
+
+        {/* Recently opened */}
+        {recentApps.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2 px-1">
+              Recently opened
+            </h2>
+            <ul className="space-y-1">
+              {recentApps.map((app) => (
+                <li key={app.slug} className="group flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      addRecentApp(app.slug, app.name);
+                      navigate(`/${app.slug}`);
+                    }}
+                    className="flex-1 flex items-center justify-between px-3 py-2 rounded-lg
+                               bg-white border border-neutral-200 hover:border-neutral-300
+                               hover:bg-neutral-50 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-md bg-neutral-100 flex items-center justify-center shrink-0">
+                        <svg className="w-3 h-3 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      </div>
+                      <span className="text-sm font-medium text-neutral-800 truncate">{app.name}</span>
+                      <span className="text-xs font-mono text-neutral-400 truncate hidden sm:block">{app.slug}</span>
+                    </div>
+                    <span className="text-xs text-neutral-400 shrink-0 ml-2">{timeAgo(app.visitedAt)}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      removeRecentApp(app.slug);
+                      setRecentApps(getRecentApps());
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-neutral-400
+                               hover:text-neutral-600 hover:bg-neutral-100 transition-all shrink-0"
+                    title="Remove from recent"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

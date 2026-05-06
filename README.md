@@ -151,6 +151,68 @@ Returns the latest 100 events ordered by `created_at DESC`.
 
 ---
 
+### Send a webhook
+```
+POST /api/:slug/webhook
+Content-Type: application/json
+X-Event-Type: payment.succeeded   (optional)
+
+{ ...your payload... }
+```
+Stores the event and returns `{ "success": true }`.
+
+**Basic event with header-based event type:**
+```bash
+curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Event-Type: payment.succeeded" \
+  -d '{
+    "id": "evt_001",
+    "amount": 4900,
+    "currency": "usd",
+    "customer": "cus_abc123",
+    "status": "succeeded"
+  }'
+```
+
+**Event type from body field:**
+```bash
+curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_type": "invoice.created",
+    "invoice_id": "inv_20260506",
+    "due_date": "2026-06-06",
+    "amount_due": 12000,
+    "customer_email": "user@example.com"
+  }'
+```
+
+**Bill paid event:**
+```bash
+curl -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Event-Type: bill.paid" \
+  -d '{
+    "bill_id": "bill_789",
+    "paid_at": "2026-05-06T14:40:00Z",
+    "amount": 25000,
+    "method": "bank_transfer",
+    "reference": "TXN-2026-88812"
+  }'
+```
+
+**Send multiple events quickly (bash loop):**
+```bash
+for event in "bill.created" "bill.due" "bill.paid" "bill.overdue"; do
+  curl -s -X POST https://webhook.msar.dev/api/bill-manager/webhook \
+    -H "Content-Type: application/json" \
+    -H "X-Event-Type: $event" \
+    -d "{\"event\": \"$event\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+    && echo " ✓ $event"
+done
+```
+
 ## Security
 
 - Payloads are capped at **1 MB**

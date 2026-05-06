@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import EventsTable, { type WebhookEvent } from '../components/EventsTable';
+import { addRecentApp } from '../lib/recentApps';
 
 const REFRESH_OPTIONS = [
   { label: '20s', value: 20 },
@@ -84,6 +85,7 @@ export default function Dashboard() {
         }
         const app = (await res.json()) as { name: string; slug: string };
         setAppName(app.name);
+        addRecentApp(app.slug, app.name);
         await fetchEvents();
       } catch {
         setError('Network error. Please reload.');

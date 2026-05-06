@@ -96,7 +96,7 @@ export default function EventsTable({ events, loading }: EventsTableProps) {
           <tr className="bg-neutral-50 border-b border-neutral-200 sticky top-0 z-10">
             <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-20">ID</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Event Type</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Created At</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Created At</th>
             <th className="px-4 py-3 w-8" aria-hidden="true" />
           </tr>
         </thead>
@@ -126,7 +126,7 @@ export default function EventsTable({ events, loading }: EventsTableProps) {
                     <span><EventTypeBadge type={event.event_type} /></span>
 
                     {/* Timestamp */}
-                    <span className="text-xs text-neutral-500 tabular-nums">{formatDate(event.created_at)}</span>
+                    <span className="text-xs text-right text-neutral-500 tabular-nums">{formatDate(event.created_at)}</span>
 
                     {/* Chevron */}
                     <span className="flex justify-end">

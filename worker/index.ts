@@ -1,12 +1,61 @@
-export default {
-  fetch(request) {
-    const url = new URL(request.url);
+import { handleGetApp, handleCreateApp } from './handlers/apps';
+import { handleGetEvents } from './handlers/events';
+import { handleWebhook } from './handlers/webhook';
 
-    if (url.pathname.startsWith("/api/")) {
-      return Response.json({
-        name: "Cloudflare",
-      });
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Event-Type',
+} as const;
+
+export default {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
-		return new Response(null, { status: 404 });
+
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    try {
+      // POST /api/apps — create new app
+      if (path === '/api/apps' && request.method === 'POST') {
+        return addCors(await handleCreateApp(request, env));
+      }
+
+      // GET /api/apps/:slug — check if app exists
+      const appMatch = path.match(/^\/api\/apps\/([^/]+)$/);
+      if (appMatch && request.method === 'GET') {
+        return addCors(await handleGetApp(request, env, appMatch[1]));
+      }
+
+      // POST /api/:slug/webhook — receive webhook payload
+      const webhookMatch = path.match(/^\/api\/([^/]+)\/webhook$/);
+      if (webhookMatch && request.method === 'POST') {
+        return addCors(await handleWebhook(request, env, webhookMatch[1]));
+      }
+
+      // GET /api/:slug/events — list events
+      const eventsMatch = path.match(/^\/api\/([^/]+)\/events$/);
+      if (eventsMatch && request.method === 'GET') {
+        return addCors(await handleGetEvents(request, env, eventsMatch[1]));
+      }
+
+      // All other routes → React SPA (served via ASSETS binding)
+      return env.ASSETS.fetch(request);
+    } catch (err) {
+      console.error('Unhandled worker error:', err);
+      return Response.json(
+        { error: 'Internal server error' },
+        { status: 500, headers: CORS_HEADERS },
+      );
+    }
   },
 } satisfies ExportedHandler<Env>;
+
+function addCors(response: Response): Response {
+  const next = new Response(response.body, response);
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => next.headers.set(k, v));
+  return next;
+}

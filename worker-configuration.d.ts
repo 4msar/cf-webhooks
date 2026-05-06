@@ -6,6 +6,10 @@ declare namespace Cloudflare {
 		mainModule: typeof import("./worker/index");
 	}
 	interface Env {
+		/** D1 SQLite database */
+		DB: D1Database;
+		/** Workers Static Assets binding (React SPA) */
+		ASSETS: Fetcher;
 	}
 }
 interface Env extends Cloudflare.Env {}

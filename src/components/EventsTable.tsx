@@ -94,9 +94,9 @@ export default function EventsTable({ events, loading }: EventsTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-neutral-50 border-b border-neutral-200 sticky top-0 z-10">
-            <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-20">ID</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-14 sm:w-20">ID</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Event Type</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Created At</th>
+            <th className="hidden sm:table-cell px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Created At</th>
             <th className="px-4 py-3 w-8" aria-hidden="true" />
           </tr>
         </thead>
@@ -113,7 +113,7 @@ export default function EventsTable({ events, loading }: EventsTableProps) {
                   <button
                     type="button"
                     onClick={() => toggleRow(event.id)}
-                    className="w-full grid grid-cols-[5rem_1fr_14rem_2rem] items-center
+                    className="w-full grid grid-cols-[3.5rem_1fr_2rem] sm:grid-cols-[5rem_1fr_14rem_2rem] items-center
                                px-4 py-3 text-left cursor-pointer
                                hover:bg-neutral-50 transition-colors
                                focus:outline-none focus:bg-neutral-50"
@@ -125,8 +125,8 @@ export default function EventsTable({ events, loading }: EventsTableProps) {
                     {/* Event type */}
                     <span><EventTypeBadge type={event.event_type} /></span>
 
-                    {/* Timestamp */}
-                    <span className="text-xs text-right text-neutral-500 tabular-nums">{formatDate(event.created_at)}</span>
+                    {/* Timestamp — hidden on mobile */}
+                    <span className="hidden sm:block text-xs text-right text-neutral-500 tabular-nums">{formatDate(event.created_at)}</span>
 
                     {/* Chevron */}
                     <span className="flex justify-end">

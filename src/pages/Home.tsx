@@ -210,7 +210,7 @@ export default function Home() {
                       removeRecentApp(app.slug);
                       setRecentApps(getRecentApps());
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-neutral-400
+                    className="sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-md text-neutral-400
                                hover:text-neutral-600 hover:bg-neutral-100 transition-all shrink-0"
                     title="Remove from recent"
                   >

@@ -23,7 +23,7 @@ export async function getAppBySlug(
   slug: string,
 ): Promise<WebhookApp | null> {
   return db
-    .prepare('SELECT * FROM webhook_apps WHERE slug = ?')
+    .prepare("SELECT * FROM webhook_apps WHERE slug = ?")
     .bind(slug)
     .first<WebhookApp>();
 }
@@ -34,11 +34,11 @@ export async function createApp(
   slug: string,
 ): Promise<WebhookApp> {
   await db
-    .prepare('INSERT INTO webhook_apps (name, slug) VALUES (?, ?)')
+    .prepare("INSERT INTO webhook_apps (name, slug) VALUES (?, ?)")
     .bind(name, slug)
     .run();
   const app = await getAppBySlug(db, slug);
-  if (!app) throw new Error('Failed to create app after insert');
+  if (!app) throw new Error("Failed to create app after insert");
   return app;
 }
 
@@ -53,7 +53,7 @@ export async function insertEvent(
 ): Promise<void> {
   await db
     .prepare(
-      'INSERT INTO webhook_events (app_id, event_type, payload, headers) VALUES (?, ?, ?, ?)',
+      "INSERT INTO webhook_events (app_id, event_type, payload, headers) VALUES (?, ?, ?, ?)",
     )
     .bind(appId, eventType, payload, headers)
     .run();
@@ -79,7 +79,7 @@ export async function getEventsByAppId(
 ): Promise<WebhookEvent[]> {
   const result = await db
     .prepare(
-      'SELECT * FROM webhook_events WHERE app_id = ? ORDER BY created_at DESC LIMIT 100',
+      "SELECT * FROM webhook_events WHERE app_id = ? ORDER BY created_at DESC LIMIT 100",
     )
     .bind(appId)
     .all<WebhookEvent>();
@@ -91,7 +91,20 @@ export async function deleteEventsByAppId(
   appId: number,
 ): Promise<void> {
   await db
-    .prepare('DELETE FROM webhook_events WHERE app_id = ?')
+    .prepare("DELETE FROM webhook_events WHERE app_id = ?")
     .bind(appId)
+    .run();
+}
+
+export async function deleteOldEvents(
+  db: D1Database,
+  days: number = 30,
+): Promise<void> {
+  await db
+    .prepare(
+      'DELETE FROM webhook_events WHERE created_at < datetime("now", "-' +
+        days +
+        ' days")',
+    )
     .run();
 }

@@ -1,46 +1,53 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import EventsTable, { type WebhookEvent } from '../components/EventsTable';
-import { addRecentApp } from '../lib/recentApps';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import EventsTable, { type WebhookEvent } from "../components/EventsTable";
+import { addRecentApp } from "../lib/recentApps";
 
 const REFRESH_OPTIONS = [
-  { label: '10s', value: 10 },
-  { label: '20s', value: 20 },
-  { label: '30s', value: 30 },
-  { label: '60s', value: 60 },
+  { label: "10s", value: 10 },
+  { label: "20s", value: 20 },
+  { label: "30s", value: 30 },
+  { label: "60s", value: 60 },
 ] as const;
 
 function formatLastRefresh(date: Date | null): string {
-  if (!date) return '—';
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (!date) return "—";
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export default function Dashboard() {
   const { appSlug } = useParams<{ appSlug: string }>();
   const navigate = useNavigate();
 
-  const [appName, setAppName] = useState('');
+  const [appName, setAppName] = useState("");
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [refreshInterval, setRefreshInterval] = useState<10 | 20 | 30 | 60>(30);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [truncateConfirm, setTruncateConfirm] = useState(false);
   const [truncating, setTruncating] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const truncateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTruncate = useCallback(async () => {
     if (!appSlug) return;
     setTruncating(true);
     try {
-      await fetch(`/api/${appSlug}/events`, { method: 'DELETE' });
+      await fetch(`/api/${appSlug}/events`, { method: "DELETE" });
       setEvents([]);
       setLastRefresh(new Date());
     } catch (err) {
-      console.error('Truncate error:', err);
+      console.error("Truncate error:", err);
     } finally {
       setTruncating(false);
       setTruncateConfirm(false);
@@ -50,7 +57,30 @@ export default function Dashboard() {
   const requestTruncateConfirm = useCallback(() => {
     setTruncateConfirm(true);
     if (truncateTimerRef.current) clearTimeout(truncateTimerRef.current);
-    truncateTimerRef.current = setTimeout(() => setTruncateConfirm(false), 4000);
+    truncateTimerRef.current = setTimeout(
+      () => setTruncateConfirm(false),
+      4000,
+    );
+  }, []);
+
+  const handleDeleteApp = useCallback(async () => {
+    if (!appSlug) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/apps/${appSlug}`, { method: "DELETE" });
+      navigate("/");
+    } catch (err) {
+      console.error("Delete app error:", err);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(false);
+    }
+  }, [appSlug, navigate]);
+
+  const requestDeleteConfirm = useCallback(() => {
+    setDeleteConfirm(true);
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    deleteTimerRef.current = setTimeout(() => setDeleteConfirm(false), 4000);
   }, []);
 
   // Fetch events (merges by ID to preserve expanded rows)
@@ -61,11 +91,11 @@ export default function Dashboard() {
       try {
         const res = await fetch(`/api/${appSlug}/events`);
         if (res.status === 404) {
-          navigate('/');
+          navigate("/");
           return;
         }
         if (!res.ok) {
-          console.error('Failed to fetch events', res.status);
+          console.error("Failed to fetch events", res.status);
           return;
         }
         const data = (await res.json()) as WebhookEvent[];
@@ -81,7 +111,7 @@ export default function Dashboard() {
         });
         setLastRefresh(new Date());
       } catch (err) {
-        console.error('Fetch error:', err);
+        console.error("Fetch error:", err);
       } finally {
         setRefreshing(false);
       }
@@ -92,20 +122,20 @@ export default function Dashboard() {
   // Initial load: validate app then fetch events
   useEffect(() => {
     if (!appSlug) {
-      navigate('/');
+      navigate("/");
       return;
     }
     (async () => {
       setLoading(true);
-      setError('');
+      setError("");
       try {
         const res = await fetch(`/api/apps/${appSlug}`);
         if (res.status === 404) {
-          navigate('/');
+          navigate("/");
           return;
         }
         if (!res.ok) {
-          setError('Failed to load app.');
+          setError("Failed to load app.");
           return;
         }
         const app = (await res.json()) as { name: string; slug: string };
@@ -113,7 +143,7 @@ export default function Dashboard() {
         addRecentApp(app.slug, app.name);
         await fetchEvents();
       } catch {
-        setError('Network error. Please reload.');
+        setError("Network error. Please reload.");
       } finally {
         setLoading(false);
       }
@@ -132,7 +162,7 @@ export default function Dashboard() {
   }, [refreshInterval, fetchEvents]);
 
   const webhookUrl =
-    typeof window !== 'undefined'
+    typeof window !== "undefined"
       ? `${window.location.origin}/api/${appSlug}/webhook`
       : `/api/${appSlug}/webhook`;
 
@@ -141,7 +171,9 @@ export default function Dashboard() {
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <Link to="/" className="text-sm text-neutral-600 underline">← Go back</Link>
+          <Link to="/" className="text-sm text-neutral-600 underline">
+            ← Go back
+          </Link>
         </div>
       </div>
     );
@@ -153,9 +185,23 @@ export default function Dashboard() {
       <header className="sticky top-0 z-20 bg-white border-b border-neutral-200 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:h-14 gap-2 sm:gap-4 py-2 sm:py-0 justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <Link to="/" className="text-neutral-400 hover:text-neutral-700 transition-colors shrink-0" aria-label="Home">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <Link
+              to="/"
+              className="text-neutral-400 hover:text-neutral-700 transition-colors shrink-0"
+              aria-label="Home"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
               </svg>
             </Link>
             <div className="w-px h-4 bg-neutral-200 shrink-0" />
@@ -163,7 +209,9 @@ export default function Dashboard() {
               <h1 className="text-sm font-semibold text-neutral-900 truncate">
                 {appName || appSlug}
               </h1>
-              <p className="text-xs text-neutral-400 font-mono truncate">{webhookUrl}</p>
+              <p className="text-xs text-neutral-400 font-mono truncate">
+                {webhookUrl}
+              </p>
             </div>
           </div>
 
@@ -171,19 +219,21 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {/* Refresh interval selector */}
             <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1">
-              {REFRESH_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setRefreshInterval(opt.value as 10 | 20 | 30 | 60)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    refreshInterval === opt.value
-                      ? 'bg-white text-neutral-900 shadow-sm'
-                      : 'text-neutral-500 hover:text-neutral-700'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              <select
+                value={refreshInterval}
+                onChange={(e) =>
+                  setRefreshInterval(
+                    Number(e.target.value) as 10 | 20 | 30 | 60,
+                  )
+                }
+                className="bg-white text-xs font-medium text-neutral-900 px-2.5 py-1 rounded-md border-none outline-none cursor-pointer"
+              >
+                {REFRESH_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Truncate events */}
@@ -197,12 +247,32 @@ export default function Dashboard() {
                 aria-label="Confirm delete all events"
               >
                 {truncating ? (
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <svg
+                    className="w-3.5 h-3.5 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
                   </svg>
                 ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                    />
                   </svg>
                 )}
                 <span className="hidden sm:inline">Confirm delete?</span>
@@ -216,10 +286,87 @@ export default function Dashboard() {
                            disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 aria-label="Delete all events"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                  />
                 </svg>
                 <span className="hidden sm:inline">Truncate</span>
+              </button>
+            )}
+
+            {/* Delete app */}
+            {deleteConfirm ? (
+              <button
+                onClick={() => void handleDeleteApp()}
+                disabled={deleting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300
+                           bg-red-50 text-xs font-medium text-red-600 hover:bg-red-100
+                           disabled:opacity-50 transition-colors"
+                aria-label="Confirm delete app"
+              >
+                {deleting ? (
+                  <svg
+                    className="w-3.5 h-3.5 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                    />
+                  </svg>
+                )}
+                <span className="hidden sm:inline">Confirm delete app?</span>
+              </button>
+            ) : (
+              <button
+                onClick={requestDeleteConfirm}
+                disabled={deleting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200
+                           text-xs font-medium text-neutral-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600
+                           disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Delete app"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Delete app</span>
               </button>
             )}
 
@@ -233,10 +380,17 @@ export default function Dashboard() {
               aria-label="Refresh now"
             >
               <svg
-                className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               <span className="hidden sm:inline">Refresh</span>
             </button>
@@ -250,27 +404,52 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 mb-4">
           <div className="flex items-center gap-3">
             <span className="text-sm text-neutral-500">
-              <span className="font-medium text-neutral-900">{events.length}</span> event{events.length !== 1 ? 's' : ''}
+              <span className="font-medium text-neutral-900">
+                {events.length}
+              </span>{" "}
+              event{events.length !== 1 ? "s" : ""}
             </span>
             {loading && (
               <span className="flex items-center gap-1 text-xs text-neutral-400">
-                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <svg
+                  className="w-3 h-3 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
                 Loading…
               </span>
             )}
           </div>
           <span className="text-xs text-neutral-400">
-            Last updated: <span className="tabular-nums">{formatLastRefresh(lastRefresh)}</span>
+            Last updated:{" "}
+            <span className="tabular-nums">
+              {formatLastRefresh(lastRefresh)}
+            </span>
           </span>
         </div>
 
         {/* Webhook endpoint snippet */}
         <div className="mb-5 flex items-center gap-2 p-3 bg-neutral-900 rounded-xl">
-          <span className="text-xs font-medium text-emerald-400 shrink-0">POST</span>
-          <code className="text-xs text-neutral-300 font-mono flex-1 truncate">{webhookUrl}</code>
+          <span className="text-xs font-medium text-emerald-400 shrink-0">
+            POST
+          </span>
+          <code className="text-xs text-neutral-300 font-mono flex-1 truncate">
+            {webhookUrl}
+          </code>
           <CopyButton text={webhookUrl} />
         </div>
 
@@ -294,8 +473,16 @@ function CopyButton({ text }: { text: string }) {
       aria-label="Copy URL"
     >
       {copied ? (
-        <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        <svg
+          className="w-4 h-4 text-emerald-400"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+            clipRule="evenodd"
+          />
         </svg>
       ) : (
         <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">

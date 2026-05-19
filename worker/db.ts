@@ -108,3 +108,11 @@ export async function deleteOldEvents(
     )
     .run();
 }
+
+export async function deleteApp(db: D1Database, appId: number): Promise<void> {
+  await db
+    .prepare("DELETE FROM webhook_events WHERE app_id = ?")
+    .bind(appId)
+    .run();
+  await db.prepare("DELETE FROM webhook_apps WHERE id = ?").bind(appId).run();
+}

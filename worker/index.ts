@@ -1,4 +1,8 @@
-import { handleGetApp, handleCreateApp } from "./handlers/apps";
+import {
+  handleGetApp,
+  handleCreateApp,
+  handleDeleteApp,
+} from "./handlers/apps";
 import {
   handleGetEvents,
   handleTruncateEvents,
@@ -13,7 +17,6 @@ const CORS_HEADERS = {
 } as const;
 
 export default {
-   
   async fetch(
     request: Request,
     env: Env,
@@ -34,9 +37,13 @@ export default {
       }
 
       // GET /api/apps/:slug — check if app exists
+      // DELETE /api/apps/:slug — delete app and events
       const appMatch = path.match(/^\/api\/apps\/([^/]+)$/);
       if (appMatch && request.method === "GET") {
         return addCors(await handleGetApp(request, env, appMatch[1]));
+      }
+      if (appMatch && request.method === "DELETE") {
+        return addCors(await handleDeleteApp(request, env, appMatch[1]));
       }
 
       // POST /api/:slug/webhook — receive webhook payload

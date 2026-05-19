@@ -1,4 +1,9 @@
-import { getAppBySlug, getEventsByAppId, deleteEventsByAppId } from '../db';
+import {
+  getAppBySlug,
+  getEventsByAppId,
+  deleteEventsByAppId,
+  deleteOldEvents,
+} from "../db";
 
 /** GET /api/:slug/events — return latest 100 events for an app */
 export async function handleGetEvents(
@@ -8,7 +13,7 @@ export async function handleGetEvents(
 ): Promise<Response> {
   const app = await getAppBySlug(env.DB, slug);
   if (!app) {
-    return Response.json({ error: 'App not found' }, { status: 404 });
+    return Response.json({ error: "App not found" }, { status: 404 });
   }
 
   const events = await getEventsByAppId(env.DB, app.id);
@@ -23,9 +28,18 @@ export async function handleTruncateEvents(
 ): Promise<Response> {
   const app = await getAppBySlug(env.DB, slug);
   if (!app) {
-    return Response.json({ error: 'App not found' }, { status: 404 });
+    return Response.json({ error: "App not found" }, { status: 404 });
   }
 
   await deleteEventsByAppId(env.DB, app.id);
+  return Response.json({ ok: true });
+}
+
+/** DELETE /api/events/cleanup — delete old events (older than 30 days) from all apps */
+export async function handleCleanupOldEvents(
+  _request: Request,
+  env: Env,
+): Promise<Response> {
+  await deleteOldEvents(env.DB);
   return Response.json({ ok: true });
 }

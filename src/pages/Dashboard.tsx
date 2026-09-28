@@ -468,10 +468,9 @@ export default function Dashboard() {
               {displayedWebhookSnippet}
             </code>
           </button>
-          <CopyButton text={webhookUrl} ariaLabel="Copy webhook URL" />
           <CopyButton
-            text={webhookCurlCommand}
-            ariaLabel="Copy webhook cURL command"
+            text={showCurlSnippet ? webhookCurlCommand : webhookUrl}
+            ariaLabel={showCurlSnippet ? "Copy webhook cURL command" : "Copy webhook URL"}
           />
         </div>
 

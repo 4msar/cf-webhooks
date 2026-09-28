@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [truncating, setTruncating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showCurlSnippet, setShowCurlSnippet] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const truncateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,6 +166,10 @@ export default function Dashboard() {
     typeof window !== "undefined"
       ? `${window.location.origin}/api/${appSlug}/webhook`
       : `/api/${appSlug}/webhook`;
+  const webhookCurlCommand = `curl -X POST "${webhookUrl}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"message":"Hello webhook!", "event":"created", "payload":{"name":"Test"}}'`;
+  const displayedWebhookSnippet = showCurlSnippet ? webhookCurlCommand : webhookUrl;
 
   if (error) {
     return (
@@ -443,14 +448,31 @@ export default function Dashboard() {
         </div>
 
         {/* Webhook endpoint snippet */}
-        <div className="mb-5 flex items-center gap-2 p-3 bg-neutral-900 rounded-xl">
+        <div className="mb-5 flex items-start gap-2 p-3 bg-neutral-900 rounded-xl">
           <span className="text-xs font-medium text-emerald-400 shrink-0">
             POST
           </span>
-          <code className="text-xs text-neutral-300 font-mono flex-1 truncate">
-            {webhookUrl}
-          </code>
-          <CopyButton text={webhookUrl} />
+          <button
+            type="button"
+            onClick={() => setShowCurlSnippet((prev) => !prev)}
+            className="flex-1 min-w-0 text-left cursor-pointer"
+            aria-label={
+              showCurlSnippet
+                ? "Show webhook URL snippet"
+                : "Show cURL command snippet"
+            }
+          >
+            <code
+              className={`text-xs text-neutral-300 font-mono block ${showCurlSnippet ? "whitespace-pre-wrap break-all" : "truncate"}`}
+            >
+              {displayedWebhookSnippet}
+            </code>
+          </button>
+          <CopyButton text={webhookUrl} ariaLabel="Copy webhook URL" />
+          <CopyButton
+            text={webhookCurlCommand}
+            ariaLabel="Copy webhook cURL command"
+          />
         </div>
 
         {/* Events table */}
@@ -460,17 +482,21 @@ export default function Dashboard() {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, ariaLabel }: { text: string; ariaLabel: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       onClick={async () => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+          console.error("Copy failed:", err);
+        }
       }}
       className="shrink-0 text-neutral-400 hover:text-white transition-colors"
-      aria-label="Copy URL"
+      aria-label={ariaLabel}
     >
       {copied ? (
         <svg

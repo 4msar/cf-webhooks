@@ -1,8 +1,12 @@
+<img src="./public/icons.svg" style="max-width: 100%;width: 96px;"/>
+
 # Webhook Dashboard
 
 A production-ready webhook inspection dashboard built on Cloudflare Workers, D1, React, and TailwindCSS v4.
 
 Inspired by Stripe Logs, Vercel Logs, and GitHub webhook inspection tools.
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/4msar/cf-webhooks)
 
 ---
 

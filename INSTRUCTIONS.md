@@ -135,6 +135,8 @@ yarn deploy
 npx wrangler d1 migrations apply webhook_db
 ```
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/4msar/cf-webhooks)
+
 ---
 
 ## Technical Requirements

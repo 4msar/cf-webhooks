@@ -32,7 +32,7 @@ function formatDate(iso: string): string {
 
 function EventTypeBadge({ type }: { type: string | null }) {
   if (!type) {
-    return <span className="text-neutral-400 italic text-xs">—</span>;
+    return <span className="text-neutral-400 italic text-xs">Unknown</span>;
   }
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 text-xs font-mono font-medium">
